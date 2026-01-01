@@ -1,30 +1,53 @@
 # Reverie Revival
 
-Next.js (App Router) starter wired for Prisma + Supabase Postgres. A single `Reverie` model is included to get migrations and reads working immediately.
+Next.js (App Router) storefront with a full admin panel backed by Prisma + Supabase Postgres.
 
 ## Setup
 
-1) Install dependencies (already run once):  
-`npm install`
+1) Install dependencies:
 
-2) Add your Supabase Postgres URI to `.env`:
+```
+npm install
+```
+
+2) Add your Supabase Postgres URI and admin credentials to `.env`:
 
 ```
 DATABASE_URL="postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres"
 DIRECT_URL="postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres"
+ADMIN_EMAIL="admin@reverierevival.co"
+ADMIN_PASSWORD="change-me"
 ```
 
-3) Push the schema and generate Prisma Client:
+3) Push the schema, generate Prisma Client, and seed:
 
 ```
 npm run prisma:push
 npm run prisma:generate
+npm run prisma:seed
 ```
 
-4) (Optional) Open Prisma Studio to edit reveries:  
-`npm run prisma:studio`
+4) (Optional) Open Prisma Studio:
 
-5) Start the dev server:  
-`npm run dev`
+```
+npm run prisma:studio
+```
 
-Visit http://localhost:3000 to see the landing page. Once your database URL is set and the schema is pushed, recent reveries will render automatically.
+5) Start the dev server:
+
+```
+npm run dev
+```
+
+## URLs
+
+- Storefront: http://localhost:3000
+- Starter page: http://localhost:3000/starter
+- Admin login: http://localhost:3000/admin/login
+
+## Admin Notes
+
+- Admin routes are protected by httpOnly session cookies.
+- Admin seed uses `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
+- All admin mutations log to `/admin/audit`.
+- Seed pulls storefront catalog data from `src/app/data/products.ts`.

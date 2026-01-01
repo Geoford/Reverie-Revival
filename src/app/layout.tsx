@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Reverie Revival",
-  description: "Next.js App Router starter wired for Prisma + Supabase Postgres.",
+  description: "Reverie Revival storefront and brand experience.",
 };
 
 export default function RootLayout({

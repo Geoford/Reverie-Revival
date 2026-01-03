@@ -31,6 +31,9 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [sortBy, setSortBy] = useState('featured');
   const [showFilters, setShowFilters] = useState(false);
+  const selectBaseClass =
+    'bg-[#121214] border border-white/20 px-4 py-2 text-white focus:outline-none focus:border-white/50 transition-colors';
+  const selectClass = `select-arrow ${selectBaseClass}`;
 
   const allSizes = ['S', 'M', 'L', 'XL', 'One Size'];
   const allColors = [
@@ -154,7 +157,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-[#121214] border border-white/20 px-4 py-2 text-white focus:outline-none focus:border-white/50 transition-colors"
+              className={selectClass}
             >
               <option value="featured">Featured</option>
               <option value="price-low">Price: Low to High</option>

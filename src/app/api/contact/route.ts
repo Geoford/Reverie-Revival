@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import nodemailer from "nodemailer";
 import { prisma } from "@/lib/prisma";
+
+export const runtime = "nodejs";
 
 const payloadSchema = z.object({
   name: z.string().min(1),
@@ -12,8 +15,11 @@ const payloadSchema = z.object({
 const CONTACT_INBOX_EMAIL =
   process.env.CONTACT_INBOX_EMAIL ?? "tankenneth207@gmail.com";
 const CONTACT_FROM_EMAIL =
-  process.env.CONTACT_FROM_EMAIL ?? "Reverie Revival <onboarding@resend.dev>";
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  process.env.CONTACT_FROM_EMAIL ?? "Reverie Revival <no-reply@example.com>";
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = Number(process.env.SMTP_PORT ?? 465);
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
 
 async function sendContactEmail(message: {
   name: string;
@@ -21,10 +27,6 @@ async function sendContactEmail(message: {
   phone?: string | null;
   body: string;
 }) {
-  if (!RESEND_API_KEY) {
-    return { sent: false, reason: "missing_api_key" };
-  }
-
   const contentLines = [
     `Name: ${message.name}`,
     `Email: ${message.email}`,
@@ -33,26 +35,33 @@ async function sendContactEmail(message: {
     message.body,
   ];
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: CONTACT_FROM_EMAIL,
-      to: [CONTACT_INBOX_EMAIL],
-      subject: `New message from ${message.name}`,
-      text: contentLines.join("\n"),
-    }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    return { sent: false, reason: text || "send_failed" };
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+    return { sent: false, reason: "missing_smtp_config" };
   }
 
-  return { sent: true };
+  try {
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: CONTACT_FROM_EMAIL,
+      to: CONTACT_INBOX_EMAIL,
+      subject: `New message from ${message.name}`,
+      text: contentLines.join("\n"),
+    });
+
+    return { sent: true };
+  } catch (error) {
+    console.error("Failed to send contact email.", error);
+    return { sent: false, reason: "send_failed" };
+  }
 }
 
 export async function POST(request: Request) {

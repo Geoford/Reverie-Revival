@@ -326,7 +326,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
                         </p>
                         <p className="text-sm text-white/60">Qty: {item.quantity}</p>
                       </div>
-                      <div>{formatPrice(item.product.price * item.quantity)}</div>
+                      <div>{formatPrice(item.unitPrice * item.quantity)}</div>
                     </div>
                   ))}
                 </div>

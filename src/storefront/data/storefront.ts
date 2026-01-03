@@ -1,3 +1,9 @@
+export type StorefrontVariant = {
+  size: string;
+  color: string;
+  price: number;
+};
+
 export type StorefrontProduct = {
   id: string;
   name: string;
@@ -15,11 +21,23 @@ export type StorefrontProduct = {
   sizes: string[];
   badge?: "new" | "sale";
   inStock: boolean;
+  variants?: StorefrontVariant[];
 };
 
 export type StorefrontCategory = {
   name: string;
   slug: string;
+};
+
+export const getVariantPrice = (
+  product: StorefrontProduct,
+  size: string,
+  color: string
+) => {
+  const variant = product.variants?.find(
+    (item) => item.size === size && item.color === color
+  );
+  return variant?.price ?? product.price;
 };
 
 export const testimonials = [

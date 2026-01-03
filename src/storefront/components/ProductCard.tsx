@@ -22,6 +22,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate })
     toggleWishlist(product.id);
   };
 
+  const variantPrices =
+    product.variants?.map((variant) => variant.price) ?? [];
+  const hasVariantPrices = variantPrices.length > 0;
+  const minVariantPrice = hasVariantPrices
+    ? Math.min(...variantPrices)
+    : product.price;
+  const maxVariantPrice = hasVariantPrices
+    ? Math.max(...variantPrices)
+    : product.price;
+  const showRange = minVariantPrice !== maxVariantPrice;
+
   const formatPrice = (price: number) => {
     return `₱${price.toLocaleString()}`;
   };
@@ -93,9 +104,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate })
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
             <span className="tracking-[0.05em]">
-              {formatPrice(product.price)}
+              {showRange
+                ? `${formatPrice(minVariantPrice)} - ${formatPrice(maxVariantPrice)}`
+                : formatPrice(minVariantPrice)}
             </span>
-            {product.originalPrice && (
+            {product.originalPrice && !showRange && (
               <span className="text-white/40 line-through">
                 {formatPrice(product.originalPrice)}
               </span>

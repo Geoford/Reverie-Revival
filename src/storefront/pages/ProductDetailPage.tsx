@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StorefrontProduct } from '../data/storefront';
+import { StorefrontProduct, getVariantPrice } from '../data/storefront';
 import { useStore } from '../context/StoreContext';
 import { Heart, ChevronDown, ShoppingCart, Truck, RotateCcw, Shield } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
@@ -51,6 +51,26 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const isWishlisted = wishlist.includes(product.id);
   const recommendations = products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const variantPrices =
+    product.variants?.map((variant) => variant.price) ?? [];
+  const hasVariantPrices = variantPrices.length > 0;
+  const minVariantPrice = hasVariantPrices
+    ? Math.min(...variantPrices)
+    : product.price;
+  const maxVariantPrice = hasVariantPrices
+    ? Math.max(...variantPrices)
+    : product.price;
+  const selectedPrice =
+    selectedSize && selectedColor
+      ? getVariantPrice(product, selectedSize, selectedColor)
+      : null;
+  const displayPrice =
+    selectedPrice ?? (minVariantPrice === maxVariantPrice ? minVariantPrice : null);
+  const showCompareAt =
+    displayPrice !== null &&
+    product.originalPrice !== undefined &&
+    product.originalPrice !== null &&
+    product.originalPrice > displayPrice;
 
   const handleAddToCart = () => {
     if (!selectedSize || !selectedColor) {
@@ -64,6 +84,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const toggleSection = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
+  };
+
+  const handleClearVariants = () => {
+    setSelectedSize('');
+    setSelectedColor('');
+    setQuantity(1);
   };
 
   return (
@@ -144,11 +170,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </h1>
               <div className="flex items-baseline gap-3 mb-4">
                 <span className="tracking-[0.05em]" style={{ fontSize: '1.75rem' }}>
-                  {formatPrice(product.price)}
+                  {displayPrice !== null
+                    ? formatPrice(displayPrice)
+                    : `${formatPrice(minVariantPrice)} - ${formatPrice(maxVariantPrice)}`}
                 </span>
-                {product.originalPrice && (
+                {showCompareAt && (
                   <span className="text-white/40 line-through">
-                    {formatPrice(product.originalPrice)}
+                    {formatPrice(product.originalPrice as number)}
                   </span>
                 )}
               </div>
@@ -206,6 +234,16 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     {size}
                   </button>
                 ))}
+              </div>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={handleClearVariants}
+                  className="text-xs tracking-[0.25em] text-white/60 underline hover:text-white transition-colors"
+                  style={{ fontFamily: "'Poppins', sans-serif" }}
+                >
+                  CLEAR VARIANTS
+                </button>
               </div>
             </div>
 

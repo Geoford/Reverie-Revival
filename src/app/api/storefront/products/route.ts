@@ -4,10 +4,12 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const colorHexMap: Record<string, string> = {
-  Black: "#0B0B0C",
-  White: "#FFFFFF",
-  Charcoal: "#121214",
-  Olive: "#4A4A3A",
+  black: "#0B0B0C",
+  white: "#FFFFFF",
+  charcoal: "#121214",
+  olive: "#4A4A3A",
+  red: "#E10613",
+  blue: "#1E40AF",
 };
 
 const slugify = (value: string) =>
@@ -17,7 +19,7 @@ const slugify = (value: string) =>
     .replace(/(^-|-$)+/g, "");
 
 const resolveColorHex = (color: string) =>
-  colorHexMap[color] ?? "#121214";
+  colorHexMap[color.trim().toLowerCase()] ?? "#121214";
 
 export async function GET() {
   if (!prisma) {
@@ -38,11 +40,17 @@ export async function GET() {
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((image) => image.url);
 
-    const sizeSet = new Set(product.variants.map((variant) => variant.size));
+    const activeVariants = product.variants.filter((variant) => variant.isActive);
+    const sizeSet = new Set(activeVariants.map((variant) => variant.size));
     const colorsMap = new Map<string, string>();
-    product.variants.forEach((variant) => {
+    activeVariants.forEach((variant) => {
       colorsMap.set(variant.color, resolveColorHex(variant.color));
     });
+    const variants = activeVariants.map((variant) => ({
+      size: variant.size,
+      color: variant.color,
+      price: variant.priceOverride ?? product.basePrice,
+    }));
 
     const isSale =
       product.compareAtPrice !== null &&
@@ -75,7 +83,8 @@ export async function GET() {
         hex,
       })),
       badge,
-      inStock: product.variants.some((variant) => variant.stockQty > 0),
+      inStock: activeVariants.some((variant) => variant.stockQty > 0),
+      variants,
     };
   });
 

@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { StorefrontProduct } from '../data/storefront';
+import { StorefrontProduct, getVariantPrice } from '../data/storefront';
 
 interface CartItem {
   product: StorefrontProduct;
   size: string;
   color: string;
   quantity: number;
+  unitPrice: number;
 }
 
 interface StoreContextType {
@@ -37,7 +38,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (savedCart) {
       try {
-        setCart(JSON.parse(savedCart));
+        const parsed = JSON.parse(savedCart);
+        if (Array.isArray(parsed)) {
+          setCart(
+            parsed.map((item) => ({
+              ...item,
+              unitPrice:
+                typeof item.unitPrice === 'number'
+                  ? item.unitPrice
+                  : getVariantPrice(item.product, item.size, item.color),
+            }))
+          );
+        }
       } catch (error) {
         console.error('Failed to parse saved cart.', error);
       }
@@ -71,6 +83,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [wishlist, isHydrated]);
 
   const addToCart = (product: StorefrontProduct, size: string, color: string, quantity: number) => {
+    const unitPrice = getVariantPrice(product, size, color);
     setCart((prevCart) => {
       const existingItem = prevCart.find(
         (item) =>
@@ -84,12 +97,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           item.product.id === product.id &&
           item.size === size &&
           item.color === color
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, quantity: item.quantity + quantity, unitPrice }
             : item
         );
       }
 
-      return [...prevCart, { product, size, color, quantity }];
+      return [...prevCart, { product, size, color, quantity, unitPrice }];
     });
   };
 
@@ -142,7 +155,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const getCartTotal = () => {
     return cart.reduce(
-      (total, item) => total + item.product.price * item.quantity,
+      (total, item) => total + item.unitPrice * item.quantity,
       0
     );
   };

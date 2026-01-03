@@ -30,6 +30,10 @@ type ProductEditorData = {
   title: string;
   slug: string;
   description: string;
+  details: string;
+  materials: string;
+  fit: string;
+  care: string;
   status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   basePrice: number;
   compareAtPrice?: number | null;
@@ -70,6 +74,10 @@ export function ProductEditorForm({
     initialData.status
   );
   const [description, setDescription] = useState(initialData.description);
+  const [details, setDetails] = useState(initialData.details);
+  const [materials, setMaterials] = useState(initialData.materials);
+  const [fit, setFit] = useState(initialData.fit);
+  const [care, setCare] = useState(initialData.care);
   const [basePrice, setBasePrice] = useState(String(initialData.basePrice ?? 0));
   const [compareAtPrice, setCompareAtPrice] = useState(
     initialData.compareAtPrice ? String(initialData.compareAtPrice) : ""
@@ -98,6 +106,10 @@ export function ProductEditorForm({
       title,
       slug,
       description,
+      details,
+      materials,
+      fit,
+      care,
       status,
       basePrice: Number(basePrice || 0),
       compareAtPrice: compareAtPrice ? Number(compareAtPrice) : null,
@@ -120,6 +132,10 @@ export function ProductEditorForm({
     deletedImageIds,
     deletedVariantIds,
     description,
+    details,
+    materials,
+    fit,
+    care,
     images,
     initialData.id,
     seoDescription,
@@ -198,6 +214,16 @@ export function ProductEditorForm({
       }
       return prev.filter((_, idx) => idx !== index);
     });
+  };
+
+  const handleClearVariants = () => {
+    const deletedIds = variants
+      .filter((variant) => variant.id)
+      .map((variant) => variant.id as string);
+    if (deletedIds.length > 0) {
+      setDeletedVariantIds((ids) => [...ids, ...deletedIds]);
+    }
+    setVariants([]);
   };
 
   return (
@@ -294,6 +320,54 @@ export function ProductEditorForm({
                     min="0"
                     value={compareAtPrice}
                     onChange={(event) => setCompareAtPrice(event.target.value)}
+                  />
+                </div>
+              </div>
+            ),
+          },
+          {
+            id: "details",
+            label: "Details",
+            content: (
+              <div className="grid gap-4">
+                <div>
+                  <label className="text-xs tracking-[0.2em] text-white/50">
+                    PRODUCT DETAILS
+                  </label>
+                  <Textarea
+                    rows={4}
+                    value={details}
+                    onChange={(event) => setDetails(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs tracking-[0.2em] text-white/50">
+                    MATERIALS
+                  </label>
+                  <Textarea
+                    rows={4}
+                    value={materials}
+                    onChange={(event) => setMaterials(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs tracking-[0.2em] text-white/50">
+                    CARE INSTRUCTIONS
+                  </label>
+                  <Textarea
+                    rows={4}
+                    value={care}
+                    onChange={(event) => setCare(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs tracking-[0.2em] text-white/50">
+                    FIT & SIZING
+                  </label>
+                  <Textarea
+                    rows={4}
+                    value={fit}
+                    onChange={(event) => setFit(event.target.value)}
                   />
                 </div>
               </div>
@@ -411,9 +485,14 @@ export function ProductEditorForm({
             label: "Variants",
             content: (
               <div className="space-y-4">
-                <Button type="button" variant="outline" onClick={handleAddVariant}>
-                  Add Variant
-                </Button>
+                <div className="flex flex-wrap gap-3">
+                  <Button type="button" variant="outline" onClick={handleAddVariant}>
+                    Add Variant
+                  </Button>
+                  <Button type="button" variant="danger" onClick={handleClearVariants}>
+                    Clear Variants
+                  </Button>
+                </div>
                 <div className="space-y-4">
                   {variants.map((variant, index) => (
                     <div

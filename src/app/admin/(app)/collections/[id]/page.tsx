@@ -53,7 +53,7 @@ async function updateCollectionAction(formData: FormData) {
 export default async function CollectionDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: { id?: string } | Promise<{ id?: string }>;
 }) {
   if (!prisma) {
     return (
@@ -63,9 +63,15 @@ export default async function CollectionDetailPage({
     );
   }
 
+  const resolvedParams = await params;
+  const collectionId = resolvedParams?.id;
+  if (!collectionId) {
+    redirect("/admin/collections?error=missing");
+  }
+
   const [collection, products] = await Promise.all([
     prisma.collection.findUnique({
-      where: { id: params.id },
+      where: { id: collectionId },
       include: { products: true },
     }),
     prisma.product.findMany({

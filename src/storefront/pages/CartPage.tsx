@@ -136,10 +136,10 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
 
                       {/* Price */}
                       <div className="text-right">
-                        <p>{formatPrice(item.product.price * item.quantity)}</p>
+                        <p>{formatPrice(item.unitPrice * item.quantity)}</p>
                         {item.quantity > 1 && (
                           <p className="text-sm text-white/60">
-                            {formatPrice(item.product.price)} each
+                            {formatPrice(item.unitPrice)} each
                           </p>
                         )}
                       </div>

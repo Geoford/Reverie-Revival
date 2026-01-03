@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MapPin, Phone, Mail } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 export const ContactPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -8,11 +9,39 @@ export const ContactPage: React.FC = () => {
     phone: '',
     message: '',
   });
+  const { addToast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Thank you for your message! We will get back to you soon.');
-    setFormData({ name: '', email: '', phone: '', message: '' });
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to send message.');
+      }
+      const data = (await response.json()) as { emailSent?: boolean };
+      addToast('Thank you for your message! We will get back to you soon.', {
+        variant: 'success',
+      });
+      if (data.emailSent === false) {
+        addToast('Message saved. Email sending is not configured yet.', {
+          variant: 'info',
+        });
+      }
+      setFormData({ name: '', email: '', phone: '', message: '' });
+    } catch (error) {
+      console.error(error);
+      addToast('Something went wrong. Please try again.', {
+        variant: 'error',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -162,22 +191,32 @@ export const ContactPage: React.FC = () => {
 
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="w-full py-4 bg-white text-[#0B0B0C] tracking-[0.2em] hover:bg-[#E10613] hover:text-white transition-all duration-300"
                 style={{ fontFamily: "'Poppins', sans-serif" }}
               >
-                SEND MESSAGE
+                {isSubmitting ? 'SENDING...' : 'SEND MESSAGE'}
               </button>
             </form>
           </div>
 
           {/* Map & Info */}
           <div className="space-y-6">
-            {/* Embedded Map Placeholder */}
-            <div className="bg-[#121214] border border-white/10 aspect-square flex items-center justify-center">
-              <div className="text-center p-8">
-                <MapPin className="w-16 h-16 mx-auto mb-4 text-white/40" />
-                <p className="text-white/60 mb-4">Map View</p>
-                <p className="text-white/40">
+            {/* Embedded Map */}
+            <div className="bg-[#121214] border border-white/10 overflow-hidden">
+              <div className="aspect-square">
+                <iframe
+                  title="Reverie Revival Location"
+                  className="h-full w-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src="https://www.google.com/maps?q=15.076378,120.7364319&z=17&output=embed"
+                  allowFullScreen
+                />
+              </div>
+              <div className="border-t border-white/10 px-6 py-5 text-center">
+                <p className="text-xs tracking-[0.2em] text-white/60">MAP VIEW</p>
+                <p className="mt-3 text-sm text-white/40">
                   Zone 4 Camba, Arayat, Pampanga<br />
                   243, San Pablo, Mexico, Pampanga
                 </p>

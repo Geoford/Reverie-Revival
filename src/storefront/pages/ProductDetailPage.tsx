@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StorefrontProduct, getVariantPrice } from '../data/storefront';
 import { useStore } from '../context/StoreContext';
+import { useToast } from '../context/ToastContext';
 import { Heart, ChevronDown, ShoppingCart, Truck, RotateCcw, Shield } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 
@@ -26,6 +27,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   }
   const product = products.find((p) => p.id === productId);
   const { wishlist, toggleWishlist, addToCart } = useStore();
+  const { addToast } = useToast();
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState('');
@@ -74,7 +76,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const handleAddToCart = () => {
     if (!selectedSize || !selectedColor) {
-      alert('Please select size and color');
+      addToast('Please select size and color', { variant: 'error' });
       return;
     }
     addToCart(product, selectedSize, selectedColor, quantity);

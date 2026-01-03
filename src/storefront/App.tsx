@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { StoreProvider } from './context/StoreContext';
+import { ToastProvider } from './context/ToastContext';
 import { Navigation } from './components/Navigation';
 import { Footer } from './components/Footer';
 import { HomePage } from './pages/HomePage';
@@ -150,13 +151,15 @@ export default function App() {
 
   return (
     <StoreProvider>
-      <div className="min-h-screen flex flex-col">
-        <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-        <main className="flex-1">
-          {renderPage()}
-        </main>
-        <Footer onNavigate={handleNavigate} />
-      </div>
+      <ToastProvider>
+        <div className="min-h-screen flex flex-col">
+          <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
+          <main className="flex-1">
+            {renderPage()}
+          </main>
+          <Footer onNavigate={handleNavigate} />
+        </div>
+      </ToastProvider>
     </StoreProvider>
   );
 }

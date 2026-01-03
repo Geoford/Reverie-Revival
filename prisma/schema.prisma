@@ -242,3 +242,14 @@ model StockMovement {
   @@index([variantId])
   @@index([actorAdminId])
 }
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

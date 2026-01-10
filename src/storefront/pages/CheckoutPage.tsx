@@ -1,23 +1,84 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
+import { useToast } from '../context/ToastContext';
 import { CreditCard, Truck, CheckCircle2 } from 'lucide-react';
 
 interface CheckoutPageProps {
   onNavigate: (page: string) => void;
 }
 
+const LOCATION_DATA = {
+  NCR: {
+    label: 'National Capital Region (NCR)',
+    provinces: {
+      'Metro Manila': {
+        cities: {
+          'Quezon City': ['Bagong Pag-asa', 'Batasan Hills', 'Commonwealth'],
+          Manila: ['Ermita', 'Malate', 'Sampaloc'],
+          Makati: ['Bel-Air', 'Poblacion', 'San Antonio'],
+        },
+      },
+    },
+  },
+  CALABARZON: {
+    label: 'Region IV-A (CALABARZON)',
+    provinces: {
+      Cavite: {
+        cities: {
+          Tanza: ['Amaya I', 'Amaya II', 'Bagtas'],
+          Bacoor: ['Molino IV', 'Talaba'],
+          Imus: ['Anabu I-C', 'Palico I'],
+        },
+      },
+      Laguna: {
+        cities: {
+          'Santa Rosa': ['Balibago', 'Tagapo'],
+          Calamba: ['Canlubang', 'Pansol'],
+        },
+      },
+    },
+  },
+  CENTRAL_LUZON: {
+    label: 'Region III (Central Luzon)',
+    provinces: {
+      Pampanga: {
+        cities: {
+          'Angeles City': ['Balibago', 'Pampang'],
+          'San Fernando': ['Del Pilar', 'San Agustin'],
+        },
+      },
+      Bulacan: {
+        cities: {
+          Malolos: ['Anilao', 'Bagong Bayan'],
+          'Meycauayan': ['Bahay Pare', 'Calvario'],
+        },
+      },
+    },
+  },
+} as const;
+
+type RegionKey = keyof typeof LOCATION_DATA;
+
 export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
   const { cart, getCartTotal, clearCart } = useStore();
+  const { addToast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     // Shipping
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    address: '',
-    city: '',
+    houseNumber: '',
+    streetName: '',
+    building: '',
+    region: '',
     province: '',
+    city: '',
+    barangay: '',
     postalCode: '',
     // Payment
     cardNumber: '',
@@ -30,12 +91,109 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
   const shippingCost = getCartTotal() >= 2000 ? 0 : 150;
   const total = getCartTotal() + shippingCost;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const selectedRegion = formData.region
+    ? LOCATION_DATA[formData.region as RegionKey]
+    : undefined;
+  const provinceOptions = selectedRegion ? Object.keys(selectedRegion.provinces) : [];
+  const selectedProvince = selectedRegion
+    ? (selectedRegion.provinces as Record<string, { cities: Record<string, string[]> }>)[
+        formData.province
+      ]
+    : undefined;
+  const cityOptions = selectedProvince ? Object.keys(selectedProvince.cities) : [];
+  const barangayOptions = selectedProvince
+    ? (selectedProvince.cities as Record<string, string[]>)[formData.city] ?? []
+    : [];
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCurrentStep(3);
-    setTimeout(() => {
-      clearCart();
-    }, 2000);
+    if (isSubmitting) {
+      return;
+    }
+
+    setSubmitError(null);
+
+    const requiredShippingFields = [
+      formData.firstName,
+      formData.lastName,
+      formData.email,
+      formData.phone,
+      formData.houseNumber,
+      formData.streetName,
+      formData.building,
+      formData.region,
+      formData.province,
+      formData.city,
+      formData.barangay,
+      formData.postalCode,
+    ];
+
+    if (requiredShippingFields.some((value) => !value.trim())) {
+      setSubmitError('Please complete the shipping information.');
+      setCurrentStep(1);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customer: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+          },
+          shipping: {
+            houseNumber: formData.houseNumber,
+            streetName: formData.streetName,
+            building: formData.building,
+            region: formData.region,
+            province: formData.province,
+            city: formData.city,
+            barangay: formData.barangay,
+            postalCode: formData.postalCode,
+          },
+          payment: {
+            method: 'card',
+            cardName: formData.cardName,
+            cardNumber: formData.cardNumber,
+          },
+          items: cart.map((item) => ({
+            productId: item.product.id,
+            size: item.size,
+            color: item.color,
+            quantity: item.quantity,
+          })),
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setSubmitError(data?.error ?? 'Unable to place your order right now.');
+        addToast(data?.error ?? 'Checkout failed. Please try again.', {
+          variant: 'error',
+        });
+        return;
+      }
+
+      setOrderNumber(data?.orderNumber ?? null);
+      setCurrentStep(3);
+      addToast('Order placed successfully.', { variant: 'success' });
+      setTimeout(() => {
+        clearCart();
+      }, 2000);
+    } catch (error) {
+      console.error('Checkout failed.', error);
+      setSubmitError('Unable to place your order right now.');
+      addToast('Checkout failed. Please try again.', { variant: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (cart.length === 0 && currentStep !== 3) {
@@ -57,6 +215,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
           >
             ORDER CONFIRMED!
           </h2>
+          {orderNumber && (
+            <p className="mb-3 text-sm tracking-[0.2em] text-white/60">
+              ORDER #{orderNumber}
+            </p>
+          )}
           <p className="text-white/70 mb-8 leading-relaxed">
             Thank you for your order. You will receive a confirmation email shortly with your order details and tracking information.
           </p>
@@ -174,33 +337,140 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
                         className="w-full bg-[#0B0B0C] border border-white/20 px-4 py-3 text-white focus:outline-none focus:border-white/50 transition-colors"
                       />
                     </div>
-                    <div className="md:col-span-2">
-                      <label className="block mb-2">Address *</label>
+                    <div>
+                      <label className="block mb-2">House No. *</label>
                       <input
                         type="text"
                         required
-                        value={formData.address}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        value={formData.houseNumber}
+                        onChange={(e) => setFormData({ ...formData, houseNumber: e.target.value })}
                         className="w-full bg-[#0B0B0C] border border-white/20 px-4 py-3 text-white focus:outline-none focus:border-white/50 transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="block mb-2">City *</label>
+                      <label className="block mb-2">Street Name *</label>
                       <input
                         type="text"
                         required
-                        value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                        value={formData.streetName}
+                        onChange={(e) => setFormData({ ...formData, streetName: e.target.value })}
                         className="w-full bg-[#0B0B0C] border border-white/20 px-4 py-3 text-white focus:outline-none focus:border-white/50 transition-colors"
                       />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block mb-2">Building *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Apartment, unit, or floor"
+                        value={formData.building}
+                        onChange={(e) => setFormData({ ...formData, building: e.target.value })}
+                        className="w-full bg-[#0B0B0C] border border-white/20 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-white/50 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-2">Region *</label>
+                      <select
+                        required
+                        value={formData.region}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            region: e.target.value,
+                            province: '',
+                            city: '',
+                            barangay: '',
+                          })
+                        }
+                        className="w-full bg-[#0B0B0C] border border-white/20 px-4 py-3 text-white focus:outline-none focus:border-white/50 transition-colors"
+                      >
+                        <option value="" disabled>
+                          Select region
+                        </option>
+                        {Object.entries(LOCATION_DATA).map(([key, region]) => (
+                          <option key={key} value={key}>
+                            {region.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block mb-2">Province *</label>
+                      <select
+                        required
+                        value={formData.province}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            province: e.target.value,
+                            city: '',
+                            barangay: '',
+                          })
+                        }
+                        disabled={!formData.region}
+                        className="w-full bg-[#0B0B0C] border border-white/20 px-4 py-3 text-white focus:outline-none focus:border-white/50 transition-colors disabled:opacity-60"
+                      >
+                        <option value="" disabled>
+                          Select province
+                        </option>
+                        {provinceOptions.map((province) => (
+                          <option key={province} value={province}>
+                            {province}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block mb-2">City *</label>
+                      <select
+                        required
+                        value={formData.city}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            city: e.target.value,
+                            barangay: '',
+                          })
+                        }
+                        disabled={!formData.province}
+                        className="w-full bg-[#0B0B0C] border border-white/20 px-4 py-3 text-white focus:outline-none focus:border-white/50 transition-colors disabled:opacity-60"
+                      >
+                        <option value="" disabled>
+                          Select city
+                        </option>
+                        {cityOptions.map((city) => (
+                          <option key={city} value={city}>
+                            {city}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block mb-2">Barangay *</label>
+                      <select
+                        required
+                        value={formData.barangay}
+                        onChange={(e) => setFormData({ ...formData, barangay: e.target.value })}
+                        disabled={!formData.city}
+                        className="w-full bg-[#0B0B0C] border border-white/20 px-4 py-3 text-white focus:outline-none focus:border-white/50 transition-colors disabled:opacity-60"
+                      >
+                        <option value="" disabled>
+                          Select barangay
+                        </option>
+                        {barangayOptions.map((barangay) => (
+                          <option key={barangay} value={barangay}>
+                            {barangay}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block mb-2">Postal Code *</label>
                       <input
                         type="text"
                         required
-                        value={formData.province}
-                        onChange={(e) => setFormData({ ...formData, province: e.target.value })}
+                        value={formData.postalCode}
+                        onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
                         className="w-full bg-[#0B0B0C] border border-white/20 px-4 py-3 text-white focus:outline-none focus:border-white/50 transition-colors"
                       />
                     </div>
@@ -214,6 +484,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
                   >
                     CONTINUE TO PAYMENT
                   </button>
+                  {submitError && (
+                    <p className="mt-4 text-sm text-[#E10613]">{submitError}</p>
+                  )}
                 </div>
               )}
 
@@ -289,12 +562,16 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
                     </button>
                     <button
                       type="submit"
+                      disabled={isSubmitting}
                       className="flex-1 py-4 bg-white text-[#0B0B0C] tracking-[0.2em] hover:bg-[#E10613] hover:text-white transition-all duration-300"
                       style={{ fontFamily: "'Poppins', sans-serif" }}
                     >
-                      PLACE ORDER
+                      {isSubmitting ? 'PLACING ORDER...' : 'PLACE ORDER'}
                     </button>
                   </div>
+                  {submitError && (
+                    <p className="mt-4 text-sm text-[#E10613]">{submitError}</p>
+                  )}
                 </div>
               )}
             </div>

@@ -43,7 +43,7 @@ async function updateCustomerNotes(formData: FormData) {
 export default async function CustomerDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   if (!prisma) {
     return (
@@ -53,8 +53,13 @@ export default async function CustomerDetailPage({
     );
   }
 
+  const resolvedParams = await params;
+  if (!resolvedParams?.id) {
+    return <div className="text-white/60">Customer not found.</div>;
+  }
+
   const customer = await prisma.customer.findUnique({
-    where: { id: params.id },
+    where: { id: resolvedParams.id },
     include: { orders: true },
   });
 

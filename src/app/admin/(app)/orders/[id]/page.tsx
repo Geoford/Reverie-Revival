@@ -133,7 +133,7 @@ async function cancelOrderAction(formData: FormData) {
 export default async function OrderDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   if (!prisma) {
     return (
@@ -143,8 +143,13 @@ export default async function OrderDetailPage({
     );
   }
 
+  const resolvedParams = await params;
+  if (!resolvedParams?.id) {
+    return <div className="text-white/60">Order not found.</div>;
+  }
+
   const order = await prisma.order.findUnique({
-    where: { id: params.id },
+    where: { id: resolvedParams.id },
     include: {
       items: {
         include: {
@@ -159,6 +164,27 @@ export default async function OrderDetailPage({
   if (!order) {
     return <div className="text-white/60">Order not found.</div>;
   }
+
+  const paymentDetails =
+    order.paymentDetails &&
+    typeof order.paymentDetails === "object" &&
+    !Array.isArray(order.paymentDetails)
+      ? (order.paymentDetails as Record<string, unknown>)
+      : null;
+
+  const paymentMethod =
+    typeof paymentDetails?.method === "string" && paymentDetails.method
+      ? paymentDetails.method
+      : "N/A";
+  const paymentCardholder =
+    typeof paymentDetails?.cardholderName === "string" &&
+    paymentDetails.cardholderName
+      ? paymentDetails.cardholderName
+      : "N/A";
+  const paymentLast4 =
+    typeof paymentDetails?.last4 === "string" && paymentDetails.last4
+      ? paymentDetails.last4
+      : "N/A";
 
   return (
     <div className="space-y-8">
@@ -181,6 +207,11 @@ export default async function OrderDetailPage({
             <Badge tone={order.paymentStatus === "PAID" ? "success" : "warning"}>
               {order.paymentStatus}
             </Badge>
+          </div>
+          <div className="mt-4 space-y-1 text-xs text-white/60">
+            <p>Method: {paymentMethod}</p>
+            <p>Cardholder: {paymentCardholder}</p>
+            <p>Card: {paymentLast4 === "N/A" ? "N/A" : `**** ${paymentLast4}`}</p>
           </div>
           <form action={updatePaymentStatusAction} className="mt-4 space-y-3">
             <input type="hidden" name="orderId" value={order.id} />

@@ -158,6 +158,7 @@ model Order {
   shippingFee       Int
   total             Int
   paymentStatus     PaymentStatus     @default(UNPAID)
+  paymentDetails    Json?
   fulfillmentStatus FulfillmentStatus @default(UNFULFILLED)
   trackingNumber    String?
   courier           String?

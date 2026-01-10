@@ -124,38 +124,52 @@ export default async function OrdersPage({
           </THead>
           <TBody>
             {orders.map((order) => (
-              <TR key={order.id}>
+              <TR key={order.id} className="cursor-pointer">
                 <TD className="font-medium">
-                  <Link href={`/admin/orders/${order.id}`} className="hover:underline">
+                  <Link href={`/admin/orders/${order.id}`} className="block w-full hover:underline">
                     #{order.orderNumber}
                   </Link>
                 </TD>
-                <TD>{order.email}</TD>
-                <TD>{formatCurrency(order.total)}</TD>
                 <TD>
-                  <Badge tone={order.paymentStatus === "PAID" ? "success" : "warning"}>
-                    {order.paymentStatus}
-                  </Badge>
+                  <Link href={`/admin/orders/${order.id}`} className="block w-full">
+                    {order.email}
+                  </Link>
                 </TD>
                 <TD>
-                  <Badge
-                    tone={
-                      order.fulfillmentStatus === "DELIVERED"
-                        ? "success"
-                        : order.fulfillmentStatus === "CANCELLED"
-                        ? "danger"
-                        : "warning"
-                    }
-                  >
-                    {order.fulfillmentStatus}
-                  </Badge>
+                  <Link href={`/admin/orders/${order.id}`} className="block w-full">
+                    {formatCurrency(order.total)}
+                  </Link>
                 </TD>
                 <TD>
-                  {order.createdAt.toLocaleDateString("en-PH", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  <Link href={`/admin/orders/${order.id}`} className="block w-full">
+                    <Badge tone={order.paymentStatus === "PAID" ? "success" : "warning"}>
+                      {order.paymentStatus}
+                    </Badge>
+                  </Link>
+                </TD>
+                <TD>
+                  <Link href={`/admin/orders/${order.id}`} className="block w-full">
+                    <Badge
+                      tone={
+                        order.fulfillmentStatus === "DELIVERED"
+                          ? "success"
+                          : order.fulfillmentStatus === "CANCELLED"
+                          ? "danger"
+                          : "warning"
+                      }
+                    >
+                      {order.fulfillmentStatus}
+                    </Badge>
+                  </Link>
+                </TD>
+                <TD>
+                  <Link href={`/admin/orders/${order.id}`} className="block w-full">
+                    {order.createdAt.toLocaleDateString("en-PH", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </Link>
                 </TD>
               </TR>
             ))}
